@@ -3,9 +3,6 @@
 #include "detail.h"
 #include "containers.h"
 
-#include "cereal/cereal.hpp"
-#include "cereal/access.hpp"
-
 namespace autograd {
 class OptimizerImpl {
  public:
@@ -46,13 +43,7 @@ AUTOGRAD_OPTIMIZER_CLASS(SGD) {
   void step() override;
   void init_state() override;
 
-  template <class Archive>
-  void serialize(Archive & ar) {
-    ar(CEREAL_NVP(momentum_buffers_));
-  }
-
  private:
-  friend class cereal::access;
   SGD() { }
   std::unordered_map<std::string, at::Tensor> momentum_buffers_;
 };
@@ -66,14 +57,7 @@ AUTOGRAD_OPTIMIZER_CLASS(Adagrad) {
   void step() override;
   void init_state() override;
 
-  template <class Archive>
-  void serialize(Archive & ar) {
-    ar(CEREAL_NVP(sum_));
-    ar(CEREAL_NVP(step_));
-  }
-
  private:
-  friend class cereal::access;
   Adagrad() { }
   std::unordered_map<std::string, at::Tensor> sum_;
   std::unordered_map<std::string, double> step_;
@@ -92,15 +76,7 @@ AUTOGRAD_OPTIMIZER_CLASS(RMSprop) {
   void step() override;
   void init_state() override;
 
-  template <class Archive>
-  void serialize(Archive & ar) {
-    ar(CEREAL_NVP(square_avg_buffer_));
-    ar(CEREAL_NVP(momentum_buffer_));
-    ar(CEREAL_NVP(grad_avg_buffer_));
-  }
-
  private:
-  friend class cereal::access;
   RMSprop() { }
   std::unordered_map<std::string, at::Tensor> square_avg_buffer_;
   std::unordered_map<std::string, at::Tensor> momentum_buffer_;
@@ -119,16 +95,7 @@ AUTOGRAD_OPTIMIZER_CLASS(Adam) {
   void step() override;
   void init_state() override;
 
-  template <class Archive>
-  void serialize(Archive & ar) {
-    ar(CEREAL_NVP(step_buffer_),
-       CEREAL_NVP(exp_avg_buffer_),
-       CEREAL_NVP(exp_avg_sq_buffer_),
-       CEREAL_NVP(max_exp_avg_sq_buffer_));
-  }
-
  private:
-  friend class cereal::access;
   Adam() { }
   std::unordered_map<std::string, int> step_buffer_;
   std::unordered_map<std::string, at::Tensor> exp_avg_buffer_;

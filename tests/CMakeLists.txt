@@ -5,7 +5,6 @@ ADD_EXECUTABLE(autograd_test
   rnn_t.cpp
   integration_t.cpp
   optim_t.cpp
-  serialization_t.cpp
 )
 
 TARGET_COMPILE_OPTIONS(autograd_test

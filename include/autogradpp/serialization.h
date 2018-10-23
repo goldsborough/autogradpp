@@ -174,7 +174,7 @@ void save(Archive& archive, at::Tensor const& tensor) {
   for (auto s : tensor.sizes()) {
     sizes.push_back(s);
   }
-  auto contig = tensor.toBackend(at::kCPU).contiguous();
+  auto contig = tensor.to(at::kCPU).contiguous();
   int32_t backend = ::autograd::detail::backendId(tensor.type().backend());
 
   archive(CEREAL_NVP(backend), CEREAL_NVP(sizes));
@@ -208,13 +208,13 @@ void load(Archive& archive, at::Tensor& tensor) {
 
   at::Backend backend = ::autograd::detail::backendFromId(backendId);
   if (!tensor.defined() || tensor.type().scalarType() != type) {
-    tensor = at::getType(backend, type).tensor();
+    // tensor = at::getType(backend, type).tensor();
   }
   tensor.resize_(sizes);
 
   if (tensor.type().is_cuda()) {
     // should actually use cudamemcpy probably
-    auto cputensor = at::CPU(tensor.type().scalarType()).tensor(sizes);
+    auto cputensor = at::empty(sizes, at::CPU(tensor.type().scalarType()));
     agimpl::loadBinary(
         archive,
         cputensor.data_ptr(),

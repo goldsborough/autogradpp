@@ -5,13 +5,13 @@
 #include <functional>
 #include <stdexcept>
 
+#include "detail.h"
+
 #if AT_CUDA_ENABLED()
-#include <THC/THCTensorRandom.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
 
-#include "detail.h"
 
 namespace autograd {
 namespace detail {
@@ -33,12 +33,12 @@ void backward(Tensor loss, bool keep_graph) {
 }
 
 void setSeed(uint64_t seed) {
-  at::globalContext().defaultGenerator(at::Backend::CPU).manualSeed(seed);
-#if AT_CUDA_ENABLED()
-  if (getNumGPUs() > 0) {
-    THCRandom_manualSeedAll(at::globalContext().lazyInitCUDA(), seed);
+  at::globalContext().defaultGenerator(at::kCPU).manualSeed(seed);
+  // NB: Sometimes we build with CUDA, but we don't have any GPUs
+  // available. In that case, we must not seed CUDA; it will fail!
+  if (at::globalContext().hasCUDA() && at::globalContext().getNumGPUs() > 0) {
+    at::globalContext().defaultGenerator(at::kCUDA).manualSeedAll(seed);
   }
-#endif
 };
 
 int getNumGPUs() {

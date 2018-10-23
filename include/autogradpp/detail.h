@@ -3,13 +3,12 @@
 #include <map>
 #include <memory>
 
+#define AT_CUDA_ENABLED() false
+#define AT_CUDNN_ENABLED() false
+
 #include "torch/csrc/autograd/engine.h"
 #include "torch/csrc/autograd/grad_mode.h"
 
-// for AutoGPU. Usage:
-//   AutoGPU gpu_raii(1);
-// While this object is in scope, all of your GPU tensors will go to GPU 1
-#include "torch/csrc/utils/auto_gpu.h"
 
 #define AUTOGRAD_OPTIMIZER_CLASS(Type) \
   class Type : public autograd::Optimizer_CRTP<Type>

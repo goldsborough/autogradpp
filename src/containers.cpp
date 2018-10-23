@@ -140,10 +140,10 @@ void Linear::reset_parameters() {
 
 void Linear::initialize_parameters() {
   weight = this->add(
-      Var(DefaultTensor(at::kFloat).tensor({nout, nin}), true), "weight");
+      Var(at::empty({nout, nin}, DefaultTensor(at::kFloat)), true), "weight");
   if (!no_bias_) {
     bias =
-        this->add(Var(DefaultTensor(at::kFloat).tensor({nout}), true), "bias");
+        this->add(Var(at::empty({nout}, DefaultTensor(at::kFloat)), true), "bias");
   }
 }
 
@@ -160,7 +160,7 @@ void Embedding::reset_parameters() {
 
 void Embedding::initialize_parameters() {
   weight = this->add(
-      Var(DefaultTensor(at::kFloat).tensor({num_embeddings, embedding_dim}),
+      Var(at::empty({num_embeddings, embedding_dim}, DefaultTensor(at::kFloat)),
           true),
       "weight");
 }
@@ -185,10 +185,10 @@ void Conv::initialize_parameters() {
   }
   wsize.insert(wsize.end(), ks_.begin(), ks_.end());
   weight =
-      this->add(Var(DefaultTensor(at::kFloat).tensor(wsize), true), "weight");
+      this->add(Var(at::empty(wsize, DefaultTensor(at::kFloat)), true), "weight");
   if (!no_bias_) {
     bias = this->add(
-        Var(DefaultTensor(at::kFloat).tensor({out_channels_}), true), "bias");
+        Var(at::empty({out_channels_}, DefaultTensor(at::kFloat)), true), "bias");
   } else {
     assert(!bias.defined());
   }
@@ -254,14 +254,14 @@ variable_list Conv::forward(variable_list input) {
 void BatchNorm::initialize_parameters() {
   if (affine_) {
     weight = this->add(
-        Var(DefaultTensor(at::kFloat).tensor(num_features_), true), "weight");
+        Var(at::empty(num_features_, DefaultTensor(at::kFloat)), true), "weight");
     bias = this->add(
-        Var(DefaultTensor(at::kFloat).tensor(num_features_), true), "bias");
+        Var(at::empty(num_features_, DefaultTensor(at::kFloat)), true), "bias");
   }
 
   if (stateful_) {
-    running_mean = Var(DefaultTensor(at::kFloat).zeros({num_features_}), false);
-    running_var = Var(DefaultTensor(at::kFloat).ones({num_features_}), false);
+    running_mean = Var(at::zeros({num_features_}, DefaultTensor(at::kFloat)), false);
+    running_var = Var(at::ones({num_features_}, DefaultTensor(at::kFloat)), false);
   }
 }
 
@@ -340,7 +340,7 @@ variable_list RNNBase<Derived>::GRU_cell_forward(variable_list inputs, int i) {
   auto x = inputs[0];
   auto hx = inputs[1].defined()
       ? inputs[1]
-      : Var(this->DefaultTensor(at::kFloat).zeros({x.size(0), hidden_size_}));
+      : Var(at::zeros({x.size(0), hidden_size_}));
 
   auto gi = i2h[i]->forward({x})[0];
   auto gh = h2h[i]->forward({hx})[0];
@@ -362,7 +362,7 @@ variable_list RNNBase<Derived>::RNN_TANH_cell_forward(
   auto x = inputs[0];
   auto hx = inputs[1].defined()
       ? inputs[1]
-      : Var(this->DefaultTensor(at::kFloat).zeros({x.size(0), hidden_size_}));
+      : Var(at::zeros({x.size(0), hidden_size_}));
 
   auto h = (i2h[i]->forward({x})[0] + h2h[i]->forward({hx})[0]).tanh();
   return variable_list({h});
@@ -375,7 +375,7 @@ variable_list RNNBase<Derived>::RNN_RELU_cell_forward(
   auto x = inputs[0];
   auto hx = inputs[1].defined()
       ? inputs[1]
-      : Var(this->DefaultTensor(at::kFloat).zeros({x.size(0), hidden_size_}));
+      : Var(at::zeros({x.size(0), hidden_size_}));
 
   auto h = (i2h[i]->forward({x})[0] + h2h[i]->forward({hx})[0]).clamp_min(0);
   return variable_list({h});
@@ -386,8 +386,7 @@ variable_list RNNBase<Derived>::LSTM_cell_forward(variable_list inputs, int i) {
   auto x = inputs[0];
   auto hid = inputs[1].defined()
       ? inputs[1]
-      : Var(this->DefaultTensor(at::kFloat)
-                .zeros({2, x.size(0), hidden_size_}));
+      : Var(at::zeros({2, x.size(0), hidden_size_}, this->DefaultTensor(at::kFloat)));
   auto hx = hid[0];
   auto cx = hid[1];
 
@@ -429,8 +428,7 @@ variable_list RNNBase<Derived>::autograd_forward(variable_list inputs) {
   }
 
   auto output =
-      Var(this->DefaultTensor(at::kFloat)
-              .zeros({inp.size(0), inp.size(1), hidden_size_}),
+      Var(at::zeros({inp.size(0), inp.size(1), hidden_size_}, this->DefaultTensor(at::kFloat)),
           false);
   for (auto t = 0U; t < inp.size(0); t++) {
     auto x = inp.select(0, t);
@@ -523,15 +521,15 @@ variable_list RNNBase<Derived>::CUDNN_forward(variable_list inputs) {
   auto x = inputs[0];
   Variable hx, cx;
   if (!inputs[1].defined()) {
-    hx = x.type().zeros({nlayers_, x.size(1), hidden_size_});
+    hx = at::zeros({nlayers_, x.size(1), hidden_size_}, x.type());
     if (mode_ == RNNMode::LSTM) {
-      cx = x.type().zeros({nlayers_, x.size(1), hidden_size_});
+      cx = at::zeros({nlayers_, x.size(1), hidden_size_}, x.type());
     }
   } else {
     hx = mode_ == RNNMode::LSTM ? inputs[1][0] : inputs[1];
     cx = mode_ == RNNMode::LSTM ? inputs[1][1] : Variable();
   }
-  auto dropout_state = x.type().tensor();
+  auto dropout_state = at::empty(0, x.type());
 
   std::vector<void*> weight_data_ptrs;
   auto params = this->parameters();
@@ -607,7 +605,7 @@ variable_list Dropout::forward(variable_list inputs) {
     return inputs;
   variable_list lst;
   for (auto x : inputs) {
-    auto noise = x.data().type().tensor(x.sizes());
+    auto noise = at::empty(x.sizes(), x.data().type());
     noise = (noise.uniform_(0, 1) > p_)
                 .toType(x.type().scalarType())
                 .mul_(1. / (1 - p_));
@@ -621,7 +619,7 @@ variable_list Dropout2d::forward(variable_list inputs) {
     return inputs;
   variable_list lst;
   for (auto x : inputs) {
-    auto noise = x.data().type().tensor({x.size(0), x.size(1), 1, 1});
+    auto noise = at::empty({x.size(0), x.size(1), 1, 1}, x.data().type());
     noise = (noise.uniform_(0, 1) > p_)
                 .toType(x.type().scalarType())
                 .mul_(1. / (1 - p_));

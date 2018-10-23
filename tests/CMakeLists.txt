@@ -1,11 +1,11 @@
 ADD_EXECUTABLE(autograd_test
   test.cpp
-  container_t.cpp
-  misc_t.cpp
-  rnn_t.cpp
-  integration_t.cpp
-  optim_t.cpp
-  serialization_t.cpp
+  # container_t.cpp
+  # misc_t.cpp
+  # rnn_t.cpp
+  # integration_t.cpp
+  # optim_t.cpp
+  # serialization_t.cpp
 )
 
 TARGET_COMPILE_OPTIONS(autograd_test
